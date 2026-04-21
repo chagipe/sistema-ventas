@@ -1,7 +1,7 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Package, ShoppingCart,
-  ClipboardList, Users, Wallet, LogOut, Store, Truck
+  ClipboardList, Users, Wallet, LogOut, Store, Truck, BarChart2
 } from 'lucide-react';
 
 const menu = [
@@ -12,6 +12,7 @@ const menu = [
   { icon: ClipboardList, label: 'Inventario', path: '/inventario' },
   { icon: Users, label: 'Usuarios', path: '/usuarios' },
   { icon: Wallet, label: 'Caja', path: '/caja' },
+  { icon: BarChart2, label: 'Reportes', path: '/reportes' },
 ];
 
 export default function Sidebar() {

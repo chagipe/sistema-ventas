@@ -5,11 +5,12 @@ import Navbar from '../components/Navbar';
 import api from '../services/api';
 
 const formInicial = {
-  nombre: '', telefono: '', email: '', direccion: '',
+  nombre: '', telefono: '', email: '', direccion: '', categorias: [],
 };
 
 export default function Proveedores() {
   const [proveedores, setProveedores] = useState([]);
+  const [categorias, setCategorias] = useState([]);
   const [modal, setModal] = useState(false);
   const [form, setForm] = useState(formInicial);
   const [editando, setEditando] = useState(null);
@@ -17,11 +18,26 @@ export default function Proveedores() {
 
   useEffect(() => {
     cargarProveedores();
+    cargarCategorias();
   }, []);
 
   const cargarProveedores = async () => {
     const res = await api.get('/proveedores');
     setProveedores(res.data);
+  };
+
+  const cargarCategorias = async () => {
+    const res = await api.get('/proveedores/categorias');
+    setCategorias(res.data);
+  };
+
+  const toggleCategoria = (id) => {
+    setForm(prev => ({
+      ...prev,
+      categorias: prev.categorias.includes(id)
+        ? prev.categorias.filter(c => c !== id)
+        : [...prev.categorias, id]
+    }));
   };
 
   const abrirModal = (proveedor = null) => {
@@ -31,6 +47,7 @@ export default function Proveedores() {
         telefono: proveedor.telefono || '',
         email: proveedor.email || '',
         direccion: proveedor.direccion || '',
+        categorias: proveedor.categorias?.map(c => c.id) || [],
       });
       setEditando(proveedor.id);
     } else {
@@ -108,7 +125,7 @@ export default function Proveedores() {
                   <th className="text-left px-5 py-3.5 text-slate-500 font-medium">Proveedor</th>
                   <th className="text-left px-5 py-3.5 text-slate-500 font-medium">Teléfono</th>
                   <th className="text-left px-5 py-3.5 text-slate-500 font-medium">Email</th>
-                  <th className="text-left px-5 py-3.5 text-slate-500 font-medium">Dirección</th>
+                  <th className="text-left px-5 py-3.5 text-slate-500 font-medium">Categorías</th>
                   <th className="text-left px-5 py-3.5 text-slate-500 font-medium">Acciones</th>
                 </tr>
               </thead>
@@ -128,7 +145,15 @@ export default function Proveedores() {
                       </td>
                       <td className="px-5 py-4 text-slate-600">{p.telefono || '—'}</td>
                       <td className="px-5 py-4 text-slate-600">{p.email || '—'}</td>
-                      <td className="px-5 py-4 text-slate-600">{p.direccion || '—'}</td>
+                      <td className="px-5 py-4">
+                        <div className="flex flex-wrap gap-1">
+                          {p.categorias?.length > 0 ? p.categorias.map(c => (
+                            <span key={c.id} className="bg-blue-50 text-blue-600 text-xs font-medium px-2 py-0.5 rounded-full">
+                              {c.nombre}
+                            </span>
+                          )) : <span className="text-slate-400">—</span>}
+                        </div>
+                      </td>
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-2">
                           <button
@@ -207,6 +232,27 @@ export default function Proveedores() {
                   className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-blue-500"
                   placeholder="Dirección del proveedor"
                 />
+              </div>
+
+              {/* Categorías */}
+              <div>
+                <label className="text-xs font-medium text-slate-500 uppercase tracking-wide">Categorías que suministra</label>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {categorias.map(c => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => toggleCategoria(c.id)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition ${
+                        form.categorias.includes(c.id)
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'bg-white text-slate-600 border-slate-200 hover:border-blue-400'
+                      }`}
+                    >
+                      {c.nombre}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 

@@ -4,6 +4,10 @@ import Dashboard from './pages/Dashboard';
 import Productos from './pages/Productos';
 import Ventas from './pages/Ventas';
 import Proveedores from './pages/Proveedores';
+import Usuarios from './pages/Usuarios';
+import Inventario from './pages/Inventario';
+import Caja from './pages/Caja';
+import Reportes from './pages/Reportes';
 
 function RutaProtegida({ children }) {
   const token = localStorage.getItem('token');
@@ -19,6 +23,10 @@ export default function App() {
         <Route path="/productos" element={<RutaProtegida><Productos /></RutaProtegida>} />
         <Route path="/ventas" element={<RutaProtegida><Ventas /></RutaProtegida>} />
         <Route path="/proveedores" element={<RutaProtegida><Proveedores /></RutaProtegida>} />
+        <Route path="/usuarios" element={<RutaProtegida><Usuarios /></RutaProtegida>} />
+        <Route path="/inventario" element={<RutaProtegida><Inventario /></RutaProtegida>} />
+        <Route path="/caja" element={<RutaProtegida><Caja /></RutaProtegida>} />
+        <Route path="/reportes" element={<RutaProtegida><Reportes /></RutaProtegida>} />
         <Route path="*" element={<Navigate to="/login" />} />
       </Routes>
     </BrowserRouter>

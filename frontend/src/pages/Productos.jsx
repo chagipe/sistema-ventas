@@ -1,12 +1,13 @@
-import { useEffect, useState } from 'react';
-import { Plus, Pencil, Trash2, X, Package } from 'lucide-react';
+import { useEffect, useState, useRef } from 'react';
+import { Plus, Pencil, Trash2, X, Package, Scan } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import Navbar from '../components/Navbar';
 import api from '../services/api';
 
 const formInicial = {
   nombre: '', descripcion: '', precio: '',
-  stock: '', stock_minimo: '5', categoria_id: '', proveedor_id: '',
+  stock: '', stock_minimo: '5', categoria_id: '',
+  proveedor_id: '', codigo_barras: '',
 };
 
 export default function Productos() {
@@ -19,11 +20,20 @@ export default function Productos() {
   const [form, setForm] = useState(formInicial);
   const [editando, setEditando] = useState(null);
   const [busqueda, setBusqueda] = useState('');
+  const [error, setError] = useState('');
+  const [escaneando, setEscaneando] = useState(false);
+  const codigoRef = useRef(null);
 
   useEffect(() => {
     cargarProductos();
     cargarExtras();
   }, []);
+
+  useEffect(() => {
+    if (modal && escaneando) {
+      setTimeout(() => codigoRef.current?.focus(), 100);
+    }
+  }, [modal, escaneando]);
 
   const cargarProductos = async () => {
     const res = await api.get('/productos');
@@ -49,7 +59,34 @@ export default function Productos() {
     setProveedoresFiltrados(proveedores.filter(p => provIds.includes(p.id)));
   };
 
+  const handleCodigoBarras = async (e) => {
+    if (e.key === 'Enter' && form.codigo_barras) {
+      try {
+        const res = await api.get(`/productos/barras/${form.codigo_barras}`);
+        // Producto ya existe, cargar sus datos
+        const p = res.data;
+        setForm({
+          nombre: p.nombre,
+          descripcion: p.descripcion || '',
+          precio: p.precio,
+          stock: p.stock,
+          stock_minimo: p.stock_minimo,
+          categoria_id: p.categoria_id || '',
+          proveedor_id: p.proveedor_id || '',
+          codigo_barras: p.codigo_barras,
+        });
+        setEditando(p.id);
+        setError('⚠️ Producto ya registrado — puedes editar sus datos');
+      } catch {
+        // Producto no existe, continuar con registro
+        setError('');
+      }
+      setEscaneando(false);
+    }
+  };
+
   const abrirModal = (producto = null) => {
+    setError('');
     if (producto) {
       setForm({
         nombre: producto.nombre,
@@ -59,8 +96,8 @@ export default function Productos() {
         stock_minimo: producto.stock_minimo,
         categoria_id: producto.categoria_id || '',
         proveedor_id: producto.proveedor_id || '',
+        codigo_barras: producto.codigo_barras || '',
       });
-      // Filtrar proveedores al editar
       if (producto.categoria_id) {
         const provIds = relaciones
           .filter(r => r.categoria_id === producto.categoria_id)
@@ -81,17 +118,23 @@ export default function Productos() {
     setForm(formInicial);
     setProveedoresFiltrados([]);
     setEditando(null);
+    setError('');
+    setEscaneando(false);
   };
 
   const guardar = async () => {
     if (!form.nombre || !form.precio || !form.stock) return;
-    if (editando) {
-      await api.put(`/productos/${editando}`, form);
-    } else {
-      await api.post('/productos', form);
+    try {
+      if (editando) {
+        await api.put(`/productos/${editando}`, form);
+      } else {
+        await api.post('/productos', form);
+      }
+      cargarProductos();
+      cerrarModal();
+    } catch (err) {
+      setError(err.response?.data?.error || 'Error al guardar');
     }
-    cargarProductos();
-    cerrarModal();
   };
 
   const eliminar = async (id) => {
@@ -101,7 +144,8 @@ export default function Productos() {
   };
 
   const productosFiltrados = productos.filter(p =>
-    p.nombre.toLowerCase().includes(busqueda.toLowerCase())
+    p.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
+    (p.codigo_barras || '').includes(busqueda)
   );
 
   return (
@@ -130,10 +174,10 @@ export default function Productos() {
           <div className="mb-4">
             <input
               type="text"
-              placeholder="Buscar producto..."
+              placeholder="Buscar por nombre o código de barras..."
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
-              className="bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-sm text-slate-700 outline-none w-72 placeholder-slate-400"
+              className="bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-sm text-slate-700 outline-none w-80 placeholder-slate-400"
             />
           </div>
 
@@ -143,6 +187,7 @@ export default function Productos() {
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50">
                   <th className="text-left px-5 py-3.5 text-slate-500 font-medium">Producto</th>
+                  <th className="text-left px-5 py-3.5 text-slate-500 font-medium">Código</th>
                   <th className="text-left px-5 py-3.5 text-slate-500 font-medium">Categoría</th>
                   <th className="text-left px-5 py-3.5 text-slate-500 font-medium">Proveedor</th>
                   <th className="text-left px-5 py-3.5 text-slate-500 font-medium">Precio</th>
@@ -154,7 +199,7 @@ export default function Productos() {
               <tbody>
                 {productosFiltrados.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="text-center py-12 text-slate-400">
+                    <td colSpan={8} className="text-center py-12 text-slate-400">
                       <Package size={32} className="mx-auto mb-2 opacity-30" />
                       No hay productos registrados
                     </td>
@@ -165,6 +210,9 @@ export default function Productos() {
                       <td className="px-5 py-4">
                         <p className="font-medium text-slate-800">{p.nombre}</p>
                         <p className="text-slate-400 text-xs mt-0.5">{p.descripcion || '—'}</p>
+                      </td>
+                      <td className="px-5 py-4 text-slate-500 font-mono text-xs">
+                        {p.codigo_barras || '—'}
                       </td>
                       <td className="px-5 py-4 text-slate-600">{p.categoria || '—'}</td>
                       <td className="px-5 py-4 text-slate-600">{p.proveedor || '—'}</td>
@@ -205,7 +253,7 @@ export default function Productos() {
       {/* Modal */}
       {modal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-5">
               <h3 className="font-semibold text-slate-800 text-lg">
                 {editando ? 'Editar producto' : 'Nuevo producto'}
@@ -215,7 +263,53 @@ export default function Productos() {
               </button>
             </div>
 
+            {error && (
+              <div className="bg-amber-50 text-amber-700 text-sm px-4 py-3 rounded-lg mb-4">
+                {error}
+              </div>
+            )}
+
             <div className="flex flex-col gap-4">
+              {/* Código de barras */}
+              <div>
+                <label className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                  Código de barras
+                </label>
+                <div className="mt-1 flex gap-2">
+                  <input
+                    ref={codigoRef}
+                    type="text"
+                    value={form.codigo_barras}
+                    onChange={(e) => setForm({ ...form, codigo_barras: e.target.value })}
+                    onKeyDown={handleCodigoBarras}
+                    className={`flex-1 border rounded-lg px-3 py-2.5 text-sm outline-none font-mono ${
+                      escaneando
+                        ? 'border-blue-500 bg-blue-50 animate-pulse'
+                        : 'border-slate-200 focus:border-blue-500'
+                    }`}
+                    placeholder={escaneando ? 'Escanea el producto...' : 'Código de barras'}
+                  />
+                  <button
+                    onClick={() => {
+                      setEscaneando(!escaneando);
+                      setTimeout(() => codigoRef.current?.focus(), 100);
+                    }}
+                    className={`px-3 py-2.5 rounded-lg border text-sm font-medium transition ${
+                      escaneando
+                        ? 'bg-blue-600 text-white border-blue-600'
+                        : 'bg-white text-slate-600 border-slate-200 hover:border-blue-400'
+                    }`}
+                  >
+                    <Scan size={18} />
+                  </button>
+                </div>
+                {escaneando && (
+                  <p className="text-xs text-blue-600 mt-1">
+                    Apunta el escáner al código de barras del producto
+                  </p>
+                )}
+              </div>
+
               <div>
                 <label className="text-xs font-medium text-slate-500 uppercase tracking-wide">Nombre</label>
                 <input
