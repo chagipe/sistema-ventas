@@ -44,18 +44,20 @@ router.get('/:id', async (req, res) => {
 
 // POST crear venta
 router.post('/', async (req, res) => {
-  const { cliente_id, usuario_id, tipo_pago, items } = req.body;
+  const { cliente_id, usuario_id, tipo_pago, items, descuento } = req.body;
   const client = await pool.connect();
 
   try {
     await client.query('BEGIN');
 
-    const total = items.reduce((sum, item) => sum + item.subtotal, 0);
+    const totalSinDescuento = items.reduce((sum, item) => sum + item.subtotal, 0);
+    const montoDescuento = (totalSinDescuento * (descuento || 0)) / 100;
+    const total = totalSinDescuento - montoDescuento;
 
     const venta = await client.query(`
-      INSERT INTO ventas (cliente_id, usuario_id, total, tipo_pago)
-      VALUES ($1, $2, $3, $4) RETURNING *
-    `, [cliente_id, usuario_id, total, tipo_pago]);
+      INSERT INTO ventas (cliente_id, usuario_id, total, tipo_pago, descuento, total_sin_descuento)
+      VALUES ($1, $2, $3, $4, $5, $6) RETURNING *
+    `, [cliente_id, usuario_id, total, tipo_pago, descuento || 0, totalSinDescuento]);
 
     const ventaId = venta.rows[0].id;
 

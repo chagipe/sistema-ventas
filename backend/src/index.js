@@ -9,6 +9,9 @@ const productosRoutes = require('./routes/productos');
 const ventasRoutes = require('./routes/ventas');
 const clientesRoutes = require('./routes/clientes');
 const proveedoresRoutes = require('./routes/proveedores');
+const usuariosRoutes = require('./routes/usuarios');
+const cajaRoutes = require('./routes/caja');
+const reportesRoutes = require('./routes/reportes');
 
 const app = express();
 
@@ -21,6 +24,9 @@ app.use('/api/productos', productosRoutes);
 app.use('/api/ventas', ventasRoutes);
 app.use('/api/clientes', clientesRoutes);
 app.use('/api/proveedores', proveedoresRoutes);
+app.use('/api/usuarios', usuariosRoutes);
+app.use('/api/caja', cajaRoutes);
+app.use('/api/reportes', reportesRoutes);
 
 app.get('/', (req, res) => {
   res.json({ mensaje: '🚀 Servidor funcionando' });
