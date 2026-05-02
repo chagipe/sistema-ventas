@@ -78,11 +78,18 @@ export default function Ventas() {
     setForm({ cliente_id: '', tipo_pago: 'efectivo', producto_id: '', cantidad: 1 });
   };
 
-  const guardarVenta = async () => {
-    if (items.length === 0) return;
-    await api.post('/ventas', { cliente_id: form.cliente_id || null, usuario_id: usuario.id, tipo_pago: form.tipo_pago, descuento, items });
-    cargarVentas(); cerrarModal();
-  };
+const guardarVenta = async () => {
+  if (items.length === 0) return;
+  await api.post('/ventas', {
+    cliente_id: form.cliente_id || null,
+    usuario_id: usuario.id,
+    tipo_pago: form.tipo_pago,
+    descuento,
+    items,
+  });
+  cargarVentas();
+  cerrarModal();
+};
 
   const ventasFiltradas = ventas.filter(v =>
     v.id.toString().includes(busqueda) ||
@@ -158,7 +165,7 @@ export default function Ventas() {
                         {new Date(v.creado_en).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                       </td>
                       <td className="px-5 py-4">
-                        <button onClick={() => imprimirTicket(v.id)} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-500 hover:text-blue-600 transition" title="Imprimir ticket">
+                        <button onClick={() => imprimirTicket(v.id, 0)} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-500 hover:text-blue-600 transition" title="Imprimir ticket">
                           <Printer size={15} />
                         </button>
                       </td>
@@ -177,6 +184,13 @@ export default function Ventas() {
             <div className="flex items-center justify-between mb-5">
               <h3 className="font-semibold text-slate-800 dark:text-white text-lg">Nueva venta</h3>
               <button onClick={cerrarModal} className="text-slate-400 hover:text-slate-600"><X size={20} /></button>
+              <button 
+                onClick={guardarVenta} 
+                disabled={items.length === 0}
+                className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium px-6 py-2.5 rounded-lg transition"
+                >
+  Registrar venta
+</button>
             </div>
 
             <div className="grid grid-cols-2 gap-4 mb-5">

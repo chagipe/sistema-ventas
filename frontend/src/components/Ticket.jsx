@@ -1,40 +1,49 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-export const imprimirTicket = async (ventaId) => {
+const NEGOCIO = {
+  nombre: 'LICORERÍA',
+  direccion: 'Av. Universitaria 7364',
+  telefono: '994 248 626',
+  ruc: '1234',
+};
+
+export const imprimirTicket = async (ventaId, montoRecibido = 0) => {
   try {
     const res = await fetch(`http://localhost:3001/api/ventas/${ventaId}`);
     const venta = await res.json();
 
     const doc = new jsPDF({
       unit: 'mm',
-      format: [80, 200],
+      format: [80, 220],
     });
 
     const ancho = 80;
     let y = 8;
 
-    // Encabezado
-    doc.setFontSize(14);
+    // ── Encabezado ──
+    doc.setFontSize(15);
     doc.setFont('helvetica', 'bold');
-    doc.text('LICORERÍA', ancho / 2, y, { align: 'center' });
+    doc.text(NEGOCIO.nombre, ancho / 2, y, { align: 'center' });
     y += 6;
 
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
-    doc.text('Tu licorería de confianza', ancho / 2, y, { align: 'center' });
+    doc.text(NEGOCIO.direccion, ancho / 2, y, { align: 'center' });
     y += 4;
-    doc.text('Tel: 999-999-999', ancho / 2, y, { align: 'center' });
-    y += 6;
+    doc.text(`Tel: ${NEGOCIO.telefono}`, ancho / 2, y, { align: 'center' });
+    y += 4;
+    doc.text(`RUC: ${NEGOCIO.ruc}`, ancho / 2, y, { align: 'center' });
+    y += 5;
 
-    // Línea separadora
+    // ── Línea ──
     doc.setLineWidth(0.3);
     doc.line(4, y, ancho - 4, y);
     y += 5;
 
-    // Info de la venta
+    // ── Info venta ──
     doc.setFontSize(8);
-    doc.text(`Ticket #${venta.id}`, 4, y);
+    doc.text(`Ticket N°: ${String(venta.id).padStart(6, '0')}`, 4, y);
     y += 4;
     doc.text(`Fecha: ${new Date(venta.creado_en).toLocaleDateString('es-PE', {
       day: '2-digit', month: '2-digit', year: 'numeric',
@@ -48,15 +57,16 @@ export const imprimirTicket = async (ventaId) => {
     doc.text(`Pago: ${venta.tipo_pago === 'yape_plin' ? 'Yape/Plin' : venta.tipo_pago}`, 4, y);
     y += 5;
 
-    // Línea separadora
+    // ── Línea ──
     doc.line(4, y, ancho - 4, y);
-    y += 3;
+    y += 4;
 
-    // Productos
+    // ── Encabezado productos ──
     doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
     doc.text('Producto', 4, y);
-    doc.text('Cant.', 44, y);
-    doc.text('Precio', 54, y);
+    doc.text('Cant', 44, y);
+    doc.text('P.Unit', 52, y);
     doc.text('Total', 66, y);
     y += 3;
 
@@ -64,42 +74,78 @@ export const imprimirTicket = async (ventaId) => {
     doc.line(4, y, ancho - 4, y);
     y += 4;
 
+    // ── Productos ──
     doc.setFont('helvetica', 'normal');
     venta.detalle.forEach(item => {
-      // Si el nombre es muy largo, lo cortamos
       const nombre = item.producto.length > 18
         ? item.producto.substring(0, 18) + '...'
         : item.producto;
-
       doc.text(nombre, 4, y);
       doc.text(`${item.cantidad}`, 44, y);
-      doc.text(`S/${parseFloat(item.precio_unitario).toFixed(2)}`, 54, y);
+      doc.text(`S/${parseFloat(item.precio_unitario).toFixed(2)}`, 52, y);
       doc.text(`S/${parseFloat(item.subtotal).toFixed(2)}`, 66, y);
       y += 5;
     });
 
-    // Línea separadora
+    // ── Línea ──
     doc.setLineWidth(0.3);
     doc.line(4, y, ancho - 4, y);
     y += 5;
 
-    // Total
+    // ── Subtotal, descuento, total ──
+    const totalSinDescuento = parseFloat(venta.total_sin_descuento || venta.total);
+    const descuento = parseFloat(venta.descuento || 0);
+    const montoDescuento = (totalSinDescuento * descuento) / 100;
+    const total = parseFloat(venta.total);
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Subtotal:', 4, y);
+    doc.text(`S/ ${totalSinDescuento.toFixed(2)}`, ancho - 4, y, { align: 'right' });
+    y += 5;
+
+    if (descuento > 0) {
+      doc.setTextColor(5, 150, 105);
+      doc.text(`Descuento (${descuento}%):`, 4, y);
+      doc.text(`- S/ ${montoDescuento.toFixed(2)}`, ancho - 4, y, { align: 'right' });
+      doc.setTextColor(0, 0, 0);
+      y += 5;
+    }
+
     doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
     doc.text('TOTAL:', 4, y);
-    doc.text(`S/ ${parseFloat(venta.total).toFixed(2)}`, ancho - 4, y, { align: 'right' });
-    y += 8;
+    doc.text(`S/ ${total.toFixed(2)}`, ancho - 4, y, { align: 'right' });
+    y += 6;
 
-    // Pie de página
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'normal');
+    // ── Vuelto ──
+    if (montoRecibido && parseFloat(montoRecibido) > 0) {
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Efectivo:', 4, y);
+      doc.text(`S/ ${parseFloat(montoRecibido).toFixed(2)}`, ancho - 4, y, { align: 'right' });
+      y += 5;
+
+      const vuelto = parseFloat(montoRecibido) - total;
+      if (vuelto >= 0) {
+        doc.setFont('helvetica', 'bold');
+        doc.text('Vuelto:', 4, y);
+        doc.text(`S/ ${vuelto.toFixed(2)}`, ancho - 4, y, { align: 'right' });
+        y += 5;
+      }
+    }
+
+    // ── Pie ──
+    doc.setLineWidth(0.3);
     doc.line(4, y, ancho - 4, y);
     y += 5;
+
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
     doc.text('¡Gracias por su compra!', ancho / 2, y, { align: 'center' });
     y += 4;
     doc.text('Vuelva pronto', ancho / 2, y, { align: 'center' });
 
-    // Abrir PDF en nueva pestaña para imprimir
     doc.autoPrint();
     window.open(doc.output('bloburl'), '_blank');
 

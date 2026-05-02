@@ -62,10 +62,17 @@ export const exportarVentasPDF = (ventas) => {
 
 // Exportar inventario a Excel
 export const exportarInventarioExcel = (productos) => {
-  const datos = productos.map(p => ({
+  const libro = XLSX.utils.book_new();
+
+  // Hoja general ordenada por categoría
+  const productosOrdenados = [...productos].sort((a, b) =>
+    (a.categoria || 'Sin categoría').localeCompare(b.categoria || 'Sin categoría')
+  );
+
+  const datos = productosOrdenados.map(p => ({
+    'Categoría': p.categoria || 'Sin categoría',
     'Producto': p.nombre,
     'Descripción': p.descripcion || '—',
-    'Categoría': p.categoria || '—',
     'Proveedor': p.proveedor || '—',
     'Precio (S/)': parseFloat(p.precio).toFixed(2),
     'Stock actual': p.stock,
@@ -73,14 +80,36 @@ export const exportarInventarioExcel = (productos) => {
     'Estado': p.stock === 0 ? 'Sin stock' : p.stock <= p.stock_minimo ? 'Stock bajo' : 'Disponible',
   }));
 
-  const hoja = XLSX.utils.json_to_sheet(datos);
-  const libro = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(libro, hoja, 'Inventario');
-
-  hoja['!cols'] = [
-    { wch: 25 }, { wch: 20 }, { wch: 15 },
-    { wch: 20 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }
+  const hojaGeneral = XLSX.utils.json_to_sheet(datos);
+  hojaGeneral['!cols'] = [
+    { wch: 18 }, { wch: 25 }, { wch: 20 }, { wch: 20 },
+    { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }
   ];
+  XLSX.utils.book_append_sheet(libro, hojaGeneral, 'Inventario completo');
+
+  // Una hoja por categoría
+  const grupos = {};
+  productos.forEach(p => {
+    const cat = p.categoria || 'Sin categoría';
+    if (!grupos[cat]) grupos[cat] = [];
+    grupos[cat].push(p);
+  });
+
+  Object.entries(grupos).forEach(([categoria, prods]) => {
+    const datosCat = prods.map(p => ({
+      'Producto': p.nombre,
+      'Proveedor': p.proveedor || '—',
+      'Precio (S/)': parseFloat(p.precio).toFixed(2),
+      'Stock actual': p.stock,
+      'Stock mínimo': p.stock_minimo,
+      'Estado': p.stock === 0 ? 'Sin stock' : p.stock <= p.stock_minimo ? 'Stock bajo' : 'Disponible',
+    }));
+    const hoja = XLSX.utils.json_to_sheet(datosCat);
+    hoja['!cols'] = [{ wch: 25 }, { wch: 20 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }];
+    // Nombre de hoja máximo 31 caracteres
+    const nombreHoja = categoria.substring(0, 31);
+    XLSX.utils.book_append_sheet(libro, hoja, nombreHoja);
+  });
 
   const buffer = XLSX.write(libro, { bookType: 'xlsx', type: 'array' });
   saveAs(new Blob([buffer]), `inventario_${new Date().toLocaleDateString('es-PE').replace(/\//g, '-')}.xlsx`);
@@ -99,20 +128,33 @@ export const exportarInventarioPDF = (productos) => {
   doc.setTextColor(100);
   doc.text(`Generado: ${new Date().toLocaleDateString('es-PE')}`, 14, 28);
 
-  autoTable(doc, {
-    startY: 35,
-    head: [['Producto', 'Categoría', 'Precio', 'Stock', 'Stock mín.', 'Estado']],
-    body: productos.map(p => [
-      p.nombre,
-      p.categoria || '—',
-      `S/ ${parseFloat(p.precio).toFixed(2)}`,
-      p.stock,
-      p.stock_minimo,
-      p.stock === 0 ? 'Sin stock' : p.stock <= p.stock_minimo ? 'Stock bajo' : 'Disponible',
-    ]),
-    headStyles: { fillColor: [79, 70, 229], fontSize: 10 },
-    bodyStyles: { fontSize: 9 },
-    alternateRowStyles: { fillColor: [248, 250, 252] },
+  // Agrupar por categoría
+  const grupos = {};
+  productos.forEach(p => {
+    const cat = p.categoria || 'Sin categoría';
+    if (!grupos[cat]) grupos[cat] = [];
+    grupos[cat].push(p);
+  });
+
+  let startY = 35;
+  Object.entries(grupos).forEach(([categoria, prods]) => {
+    autoTable(doc, {
+      startY,
+      head: [[{ content: categoria, colSpan: 6, styles: { fillColor: [79, 70, 229], fontSize: 11, fontStyle: 'bold' } }],
+             ['Producto', 'Proveedor', 'Precio', 'Stock', 'Stock mín.', 'Estado']],
+      body: prods.map(p => [
+        p.nombre,
+        p.proveedor || '—',
+        `S/ ${parseFloat(p.precio).toFixed(2)}`,
+        p.stock,
+        p.stock_minimo,
+        p.stock === 0 ? 'Sin stock' : p.stock <= p.stock_minimo ? 'Stock bajo' : 'Disponible',
+      ]),
+      headStyles: { fillColor: [100, 116, 139], fontSize: 9 },
+      bodyStyles: { fontSize: 9 },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+    });
+    startY = doc.lastAutoTable.finalY + 8;
   });
 
   doc.save(`inventario_${new Date().toLocaleDateString('es-PE').replace(/\//g, '-')}.pdf`);

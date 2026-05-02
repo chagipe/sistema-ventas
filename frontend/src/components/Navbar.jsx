@@ -93,16 +93,19 @@ export default function Navbar({ titulo }) {
           )}
         </div>
 
-        {/* Usuario */}
-        <div className="flex items-center gap-2 lg:gap-3 pl-2 lg:pl-4 border-l border-slate-200 dark:border-slate-700">
-          <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-semibold">
-            {usuario.nombre?.charAt(0).toUpperCase()}
-          </div>
-          <div className="hidden md:block">
-            <p className="text-sm font-semibold text-slate-800 dark:text-white leading-none">{usuario.nombre}</p>
-            <p className="text-xs text-slate-400 mt-0.5 capitalize">{usuario.rol}</p>
-          </div>
-        </div>
+{/* Usuario */}
+<div
+  onClick={() => navigate('/perfil')}
+  className="flex items-center gap-2 lg:gap-3 pl-2 lg:pl-4 border-l border-slate-200 dark:border-slate-700 cursor-pointer hover:opacity-80 transition"
+>
+  <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-semibold">
+    {usuario.nombre?.charAt(0).toUpperCase()}
+  </div>
+  <div className="hidden md:block">
+    <p className="text-sm font-semibold text-slate-800 dark:text-white leading-none">{usuario.nombre}</p>
+    <p className="text-xs text-slate-400 mt-0.5 capitalize">{usuario.rol}</p>
+  </div>
+</div>
 
       </div>
     </div>

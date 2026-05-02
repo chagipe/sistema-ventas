@@ -12,10 +12,19 @@ const proveedoresRoutes = require('./routes/proveedores');
 const usuariosRoutes = require('./routes/usuarios');
 const cajaRoutes = require('./routes/caja');
 const reportesRoutes = require('./routes/reportes');
+const categoriasRoutes = require('./routes/categorias');
 
 const app = express();
 
-app.use(cors());
+app.use(cors({
+  origin: [
+    'http://localhost:5173',
+    'https://sistema-ventas-chi.vercel.app',
+    /\.vercel\.app$/,
+  ],
+  credentials: true,
+}));
+
 app.use(express.json());
 
 app.use('/api/auth', authRoutes);
@@ -27,6 +36,7 @@ app.use('/api/proveedores', proveedoresRoutes);
 app.use('/api/usuarios', usuariosRoutes);
 app.use('/api/caja', cajaRoutes);
 app.use('/api/reportes', reportesRoutes);
+app.use('/api/categorias', categoriasRoutes);
 
 app.get('/', (req, res) => {
   res.json({ mensaje: '🚀 Servidor funcionando' });

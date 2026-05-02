@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Package, ShoppingCart,
-  ClipboardList, Users, Wallet, LogOut, Store, Truck, BarChart2, Menu, X
+  ClipboardList, Users, Wallet, LogOut, Store, Truck, BarChart2, Menu, X, Tag
 } from 'lucide-react';
 
 const menuAdmin = [
@@ -75,14 +75,13 @@ export default function Sidebar() {
             </div>
             <span className="text-white font-semibold text-sm tracking-wide">SistemaVentas</span>
           </div>
-          {/* Botón cerrar — solo en móvil */}
           <button onClick={() => setAbierto(false)} className="lg:hidden text-slate-400 hover:text-white">
             <X size={18} />
           </button>
         </div>
 
         {/* Menu */}
-        <nav className="flex-1 px-3 py-4 flex flex-col gap-1">
+        <nav className="flex-1 px-3 py-4 flex flex-col gap-1 overflow-y-auto">
           {menu.map((item) => {
             const Icon = item.icon;
             const activo = location.pathname === item.path;

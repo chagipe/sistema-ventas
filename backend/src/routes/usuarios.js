@@ -67,5 +67,26 @@ router.delete('/:id', async (req, res) => {
     res.status(500).json({ error: 'Error del servidor' });
   }
 });
-
+// PUT actualizar perfil propio
+router.put('/perfil/:id', async (req, res) => {
+  const { id } = req.params;
+  const { nombre, password } = req.body;
+  try {
+    if (password) {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      await pool.query(
+        'UPDATE usuarios SET nombre=$1, password=$2 WHERE id=$3',
+        [nombre, hashedPassword, id]
+      );
+    } else {
+      await pool.query(
+        'UPDATE usuarios SET nombre=$1 WHERE id=$2',
+        [nombre, id]
+      );
+    }
+    res.json({ mensaje: 'Perfil actualizado' });
+  } catch (error) {
+    res.status(500).json({ error: 'Error del servidor' });
+  }
+});
 module.exports = router;
