@@ -1,4 +1,4 @@
-# 📦 Sistema de Ventas (Chagi Inv)
+# 📦 Sistema de Ventas
 
 ![Banner del Proyecto](https://socialify.git.ci/chagipe/sistema-ventas/image?description=Gestión%20de%20Inventario%20y%20Punto%20de%20Venta%20Local&font=Inter&language=1&name=1&owner=1&pattern=Circuit%20Board&theme=Dark)
 
