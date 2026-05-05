@@ -2,7 +2,7 @@
 
 ![Banner del Proyecto](https://socialify.git.ci/chagipe/sistema-ventas/image?description=Gestión%20de%20Inventario%20y%20Punto%20de%20Venta%20Local&font=Inter&language=1&name=1&owner=1&pattern=Circuit%20Board&theme=Dark)
 
-> **Chagi Inv** es una solución robusta y moderna diseñada para la gestión de inventarios y control de ventas, optimizada para funcionar en entornos locales con alta precisión y rapidez.
+> Este sistema es una solución robusta y moderna diseñada para la gestión de inventarios y control de ventas, optimizada para funcionar en entornos locales con alta precisión y rapidez.
 
 ---
 
